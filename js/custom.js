@@ -1,44 +1,85 @@
-const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+const months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+const weeks = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
-let date = new Date();
-let month = monthNames[date.getMonth()];
-let day = date.getDate();
-let year = date.getFullYear();
 
-var appData = [];
+const date = new Date();
+const year = +(date.getFullYear()+'').slice(2);
+let month = (months[date.getMonth()]).substr(0, 3);
+let week = weeks[date.getDay()];
+const day = date.getDate();
+const hours = date.getHours();
+const min = date.getMinutes();
 
-let today = month + ' ' + day + ', ' + year;
+var appData = {};
+
+var imgUrl = ''
+
+function getTimes(num){
+
+    const timestamp = num * 1000;
+    const date = new Date(timestamp);
+    const hours = date.getHours();
+    const min = date.getMinutes();
+    // Determine AM or PM
+    const ampm = hours >= 12 ? 'PM' : 'AM';
+    // Handle midnight (0) as 12 AM
+    const formattedHours = hours % 12 || 12; 
+    
+    return `${formattedHours}:${min} ${ampm}`;
+}
 
 // var findLoc = document.getElementById('findLoc');
 
 
-fetchAPI();
+fetchWeatherAPI();
 
-function findLoc(event){
+function findLoc(event, val){
     if(event.which == 13){
-        var val = event.target.value;
-        // alert(val);
-        fetchAPI(val);
+        fetchWeatherAPI(val);
     }
 }
 
-function fetchAPI(loc){
+function fetchWeatherAPI(loc){
 
-    var location = loc ? loc : "mumbai";
-
-    // fetch('https://api.openweathermap.org/data/2.5/weather?q='+ location +',india&APPID=4d8fb5b93d4af21d66a2948710284366')
-    fetch('https://api.openweathermap.org/data/2.5/weather?q=' + location + '&appid=4d8fb5b93d4af21d66a2948710284366&units=metric')
+    var location = loc || "chennai";
+    const apiKey = '4d8fb5b93d4af21d66a2948710284366';
+    
+    fetch('https://api.openweathermap.org/data/2.5/weather?q=' + location + '&appid='+apiKey+'&units=metric')
     .then(response => response.json())
     .then(data => { 
-        console.log(data);
-        appData = [];
-        appData.push(data);
-        if(appData[0].message){
-            alert(appData[0].message)
+        appData = data;
+        console.log(appData);
+        if(data.message){
+            alert(loc + ' '+ data.message)
         }else{
             genTemp();
         }
 
+        fetchImageApi();
+
+    }).catch(error => {
+        console.error("error : " + error);
+    });
+}
+
+
+
+function fetchImageApi(){
+
+    const {weather} = appData;
+
+    const apiKey = "xSyRedaoOCUOuOopQaMMDfEeYdmrKeJln0TGJXJeKzk81vVjB1WsUC8b";
+
+    fetch(`https://api.pexels.com/v1/search?query=${weather[0].main}&per_page=10`, {
+        headers: {
+            Authorization: apiKey
+        }
+    })
+    .then(response => response.json())
+    .then(data => { 
+        console.log(data);
+        imgUrl = data.photos[Math.floor(Math.random() * data.photos.length)].src.original;
+        document.body.style.backgroundImage = 'url('+imgUrl+')';
     }).catch(error => {
         console.error("error : " + error);
     });
@@ -49,93 +90,65 @@ function fetchAPI(loc){
 
 function genTemp(){
 
-const app = document.getElementById('app');
+    const {name, weather, main, sys, visibility, wind} = appData;
 
-var temprature = Math.round(appData[0].main.temp)
-var temp = String(temprature).slice(0, 2);
-
-    
-    app.innerHTML = `<div class="search text-white text-right d-flex justify-content-between align-items-center px-5 py-4">
-                        <h6 class="m-0">${appData[0].name}</h6>
+    var template = `<div class="search d-flex gap-2 justify-content-between align-items-center">
+                        <h6 class="m-0 flex-shrink-0">${week}, ${month} ${day}, ${year}</h6>
                         <div class="form-group m-0 position-relative">
-                            <input type="search" class="form-control" id="findLoc" onkeypress="findLoc(event)" placeholder="Find...">
-                            <span class="material-symbols-outlined text-white search_icon">search </span>
+                            <input type="text" class="form-control" id="findLoc" onkeypress="findLoc(event, this.value)" placeholder="Search city...">
+                            <span class="material-symbols-outlined search_icon">search </span>
                         </div>
-
                     </div>
-                    <div class="titlebar">
-                        <p class="date">${today}</p>
-                        <p class="description font-weight-bolder">${appData[0].weather[0].description}</p>
-                    </div>
-                    <div class="temperature">
-                        <span class="material-symbols-outlined pt-3">
-                            partly_cloudy_day
-                        </span>
-                        <h2>${temp}°C</h2>
-                    </div>
-                    <div class="extra pt-4">
-                        <div class="col">
-                            <div class="info">
-                                <h5>Wind Status</h5>
-                                <p>${appData[0].wind.speed}mps</p>
+                    <div class="tempArea py-2">
+                        <h5 class="city">${name}</h5>
+                        <p class="disc">${weather[0].main}</p>
+                        <div class="temp-details d-flex align-items-center pt-3">
+                            <div class="details">
+                                <h1 class="temp">${Math.round(main.temp)}<sup>°C<sup></h1>
+                                <span class="material-symbols-outlined">keyboard_arrow_down </span> ${Math.round(main.temp_min)} &nbsp;&nbsp; <span class="material-symbols-outlined">keyboard_arrow_up </span> ${Math.round(main.temp_max)}
+                                <h6 class="city my-2">${weather[0].description}</h6>
                             </div>
-                            <div class="info">
-                                <h5>Visibility</h5>
-                                <p>${appData[0].visibility} m</p>
-                            </div>
-                        </div>
-                        
-                        <div class="col">
-                            <div class="info">
-                                <h5>Humidity</h5>
-                                <p>${appData[0].main.humidity}%</p>
-                            </div>
-                            <div class="info">
-                                <h5>Air pressure</h5>
-                                <p>${appData[0].main.pressure} mph</p>
+                            <div class="temp-icon ml-auto">
+                                <img src="https://openweathermap.org/img/wn/${weather[0].icon}@2x.png" width="100" alt="icon">
                             </div>
                         </div>
                     </div>
-                    <div class="dataweather bg-white p-3 mt-5">
-                        <h4>The next five days</h4>
-                        <div class="table">
-                            <div class="tempday">
-                                <p>FRI</p>
-                                <div class="box border p-3">
-                                <i class="fas fa-wind"></i>
-                                <p>23°C</p>
-                                </div>
-                            </div>
-                            <div class="tempday">
-                                <p>SAT</p>
-                                <div class="box  border p-3">
-                                <i class="fas fa-cloud"></i>
-                                <p>12°C</p>
-                                </div>
-                            </div>
-                            <div class="tempday">
-                                <p>SUN</p>
-                                <div class="box  border p-3">
-                                <i class="fas fa-sun"></i>
-                                <p>11°C</p>
-                                </div>
-                            </div>
-                            <div class="tempday">
-                                <p>MON</p>
-                                <div class="box  border p-3">
-                                <i class="far fa-sun"></i>
-                                <p>10°C</p>
-                                </div>
-                            </div>
-                            <div class="tempday">
-                                <p>TUE</p>
-                                <div class="box  border p-3">
-                                <i class="fas fa-cloud-sun"></i>
-                                <p>05°C</p>
-                                </div>
-                            </div>
+                    <hr>
+                    <div class="weather-details pt-2">
+                        <div class="d-flex justify-content-between align-items-center pb-2">
+                            <h6>Wind</h6>
+                            <span class="material-symbols-outlined">air </span>
+                            <h6>${wind.speed}Mph</h6>
+                        </div>
+                        <div class="d-flex justify-content-between align-items-center pb-2">
+                            <h6>humidity</h6>
+                            <span class="material-symbols-outlined">humidity_percentage </span>
+                            <h6>${main.humidity}%</h6>
+                        </div>
+                        <div class="d-flex justify-content-between align-items-center pb-2">
+                            <h6>Pressure</h6>
+                            <span class="material-symbols-outlined">speed </span>
+                            <h6>${main.pressure} InHg</h6>
+                        </div>
+                        <div class="d-flex justify-content-between align-items-center pb-2">
+                            <h6>Visibility</h6>
+                            <span class="material-symbols-outlined">visibility </span>
+                            <h6>${visibility / 1000} Km</h6>
+                        </div>
+                        <div class="d-flex justify-content-between align-items-center pb-2">
+                            <h6>Sunrise</h6>
+                            <span class="material-symbols-outlined">water_lux </span>
+                            <h6>${getTimes(sys.sunrise)}</h6>
+                        </div>
+                        <div class="d-flex justify-content-between align-items-center">
+                            <h6>Sunset</h6>
+                            <span class="material-symbols-outlined">wb_twilight </span>
+                            <h6>${getTimes(sys.sunset)}</h6>
                         </div>
                     </div>`;
-    }
+
+    document.getElementById('app').innerHTML = template;
+
+}
 
 
