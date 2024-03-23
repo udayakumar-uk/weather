@@ -55,12 +55,12 @@ hr{
 /*header*/
 
 #app {
-	max-width: 350px;
+    max-width: 350px;
     overflow: auto;
     border-radius: 8px;    
-    background: #00000036;
+    background: #18181852;
     backdrop-filter: blur(8px);
-    border: 1px solid #ffffff3b;
+    border: 1px solid #ffffff40;
     padding: 10px;
 }
 .form-control::placeholder{
